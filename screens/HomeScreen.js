@@ -1,12 +1,7 @@
-import { useNavigation } from '@react-navigation/core';
 import React, { useEffect } from 'react';
-import {
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    Image
-} from 'react-native'
+import { StyleSheet, Text, View, Image, Alert } from 'react-native';
+import { useNavigation } from "@react-navigation/core";
+import { Button } from 'react-native-elements';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { firebase } from '../firebase';
@@ -24,10 +19,9 @@ const HomeScreen = () => {
     }
 
     useEffect(() => {
-        (() => registerForPushNotificationsAsync())();
+        registerForPushNotificationsAsync();
     }, []);
 
-    //expo push-notifications
     async function registerForPushNotificationsAsync() {
         let token;
         if (Device.isDevice) {
@@ -47,54 +41,32 @@ const HomeScreen = () => {
             alert('Must use physical device for Push Notifications');
         }
         if (token) {
-            const res = await firebase.firestore().collection('users').doc(firebase.auth().currentUser.uid).set({ token }, { merge: true });
+            await firebase.firestore().collection('users').doc(firebase.auth().currentUser.uid).set({ token }, { merge: true });
         }
-        if (Platform.OS === 'android') {
-            Notifications.setNotificationChannelAsync('default', {
-                name: 'default',
-                importance: Notifications.AndroidImportance.MAX,
-                vibrationPattern: [0, 250, 250, 250],
-                lightColor: '#FF231F7C',
-            });
-        }
-
-        return token;
     }
 
     return (
         <View style={styles.container}>
             <Image source={require('../images/logo_small.webp')} style={styles.logo} />
             <Text>Email: {firebase.auth().currentUser.email}</Text>
-            <TouchableOpacity
-                onPress={handleSignOut}
-                style={styles.button}
-            >
-                <Text style={styles.buttonText}>Abmelden</Text>
-            </TouchableOpacity>
+            <Button title="Abmelden" onPress={handleSignOut} containerStyle={styles.buttonContainer} buttonStyle={styles.button} />
         </View>
-    )
-}
-
-export default HomeScreen;
+    );
+};
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: 'center',
-        alignItems: 'center'
+        alignItems: 'center',
+    },
+    buttonContainer: {
+        width: "60%",
+        marginTop: 20,
     },
     button: {
-        backgroundColor: '#007ac5',
-        width: '60%',
-        padding: 15,
+        backgroundColor: "#007ac5",
         borderRadius: 10,
-        alignItems: 'center',
-        marginTop: 40,
-    },
-    buttonText: {
-        color: 'white',
-        fontWeight: '700',
-        fontSize: 16,
     },
     logo: {
         alignSelf: "center",
@@ -103,4 +75,6 @@ const styles = StyleSheet.create({
         width: 100,
         height: 70,
     },
-})
+});
+
+export default HomeScreen;
