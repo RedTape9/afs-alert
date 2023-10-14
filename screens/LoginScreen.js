@@ -1,21 +1,30 @@
+
 import { useNavigation } from "@react-navigation/core";
 import React, { useEffect, useState } from "react";
-import {
-    KeyboardAvoidingView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    Image,
-    Alert
-} from "react-native";
+import { Alert, KeyboardAvoidingView, View, Image, StyleSheet } from "react-native";
+import { Input, Button } from 'react-native-elements';
 import { firebase } from "../firebase";
+
+// Email Validation
+const validateEmail = (email) => {
+    const pattern = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+    return pattern.test(email);
+};
+
+// get Firebase Auth Error Message
+const getFirebaseAuthErrorMessage = (error_code) => {
+    const error_messages = {
+        "auth/invalid-email": "Die E-Mail-Adresse ist nicht korrekt formatiert.",
+        "auth/user-disabled": "Das Benutzerkonto wurde deaktiviert.",
+        "auth/user-not-found": "Es gibt kein Benutzerkonto mit dieser E-Mail-Adresse.",
+        "auth/wrong-password": "Das Passwort ist nicht korrekt.",
+    };
+    return error_messages[error_code] || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.";
+};
 
 const LoginScreen = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-
     const navigation = useNavigation();
 
     useEffect(() => {
@@ -32,37 +41,36 @@ const LoginScreen = () => {
     };
 
     const handleLogin = () => {
+        if (!validateEmail(email)) {
+            Alert.alert("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
+            return;
+        }
         firebase.auth()
             .signInWithEmailAndPassword(email, password)
             .then((userCredentials) => {
                 const user = userCredentials.user;
                 console.log("Eingeloggt mit: ", user.email);
             })
-            .catch((error) => Alert.alert("Die eingegebenen Benutzerdaten stimmen nicht."));
+            .catch((error) => Alert.alert(getFirebaseAuthErrorMessage(error.code)));
     };
 
     const goToResetPW = () => {
         navigation.replace("Reset");
     }
 
-    const goToGSProfile = () => {
-        navigation.replace("GSP");
-    }
-
+    // UI and Styling
     return (
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
             <Image source={require('../images/logo_small.webp')} style={styles.logo} />
-
             <View style={styles.inputContainer}>
-
-                <TextInput
+                <Input
                     placeholder="E-mail"
                     placeholderTextColor="#a9d0fc"
                     value={email}
                     onChangeText={(text) => setEmail(text)}
                     style={styles.input}
                 />
-                <TextInput
+                <Input
                     placeholder="Passwort"
                     placeholderTextColor="#a9d0fc"
                     value={password}
@@ -71,27 +79,14 @@ const LoginScreen = () => {
                     secureTextEntry
                 />
             </View>
-
             <View style={styles.buttonContainer}>
-                <TouchableOpacity onPress={handleLogin} style={styles.button}>
-                    <Text style={styles.buttonText}>Login</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={goToAGB}
-                    style={[styles.button, styles.buttonOutline]}
-                >
-                    <Text style={styles.buttonOutlineText}>Registrieren</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={goToResetPW}>
-                    <Text style={styles.moreText}>Passwort vergessen?</Text>
-                </TouchableOpacity>
+                <Button title="Login" onPress={handleLogin} buttonStyle={styles.button} />
+                <Button title="Registrieren" onPress={goToAGB} type="outline" buttonStyle={styles.buttonOutline} titleStyle={styles.buttonOutlineText} />
+                <Button title="Passwort vergessen?" onPress={goToResetPW} type="clear" titleStyle={styles.moreText} />
             </View>
-
-
-
         </KeyboardAvoidingView>
-    )
-}
+    );
+};
 
 export default LoginScreen;
 
@@ -108,13 +103,6 @@ const styles = StyleSheet.create({
     },
     inputContainer: {
         width: "80%",
-    },
-    input: {
-        backgroundColor: "white",
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        borderRadius: 10,
-        marginTop: 5,
     },
     buttonContainer: {
         width: "60%",

@@ -1,0 +1,4 @@
+node_modules
+firebase.js
+google-services.json
+.gitignore
