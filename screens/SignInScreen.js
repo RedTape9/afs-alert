@@ -1,44 +1,53 @@
 import React, { useState } from 'react';
 import { useNavigation } from "@react-navigation/core";
-import {
-    KeyboardAvoidingView,
-    StatusBar,
-    Platform,
-    StyleSheet,
-    Image,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    Alert,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, KeyboardAvoidingView, View, Image, StyleSheet } from 'react-native';
+import { Input, Button } from 'react-native-elements';
 import { firebase } from "../firebase";
 
-const SignInScreen = () => {
-    const [firstName, setFirstName] = useState('');
-    const [surName, setSurName] = useState('');
-    const [email, setEmail] = useState('');
-    const [confirmEmail, setConfirmEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+const validateEmail = (email) => {
+    const pattern = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+    return pattern.test(email);
+};
 
+const getFirebaseAuthErrorMessage = (error_code) => {
+    const error_messages = {
+        "auth/invalid-email": "Die E-Mail-Adresse ist nicht korrekt formatiert.",
+        "auth/email-already-in-use": "Die E-Mail-Adresse wird bereits verwendet.",
+        "auth/operation-not-allowed": "E-Mail/Passwort-Authentifizierung nicht aktiviert.",
+        "auth/weak-password": "Das Passwort ist zu schwach.",
+    };
+    return error_messages[error_code] || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.";
+};
+
+const SignInScreen = () => {
+    const [state, setState] = useState({
+        firstName: '',
+        surName: '',
+        email: '',
+        confirmEmail: '',
+        password: '',
+        confirmPassword: ''
+    });
     const navigation = useNavigation();
 
-    const onFooterLinkPress = () => {
-        navigation.replace("Login");
-    }
-
     const onRegisterPress = () => {
+        const { firstName, surName, email, confirmEmail, password, confirmPassword } = state;
 
         if (firstName === "" || surName === "") {
             Alert.alert("Vor- oder Nachname unvollständig.");
+            return;
+        }
+        if (!validateEmail(email)) {
+            Alert.alert("Bitte geben Sie eine gültige E-Mail-Adresse ein.");
+            return;
         }
         if (email !== confirmEmail) {
             Alert.alert("E-mail - Eingabe stimmt nicht überein.");
+            return;
         }
         if (password !== confirmPassword) {
             Alert.alert("Passworteingabe stimmt nicht überein.");
+            return;
         }
 
         firebase.auth()
@@ -59,140 +68,62 @@ const SignInScreen = () => {
                         navigation.replace("Home", { user: data });
                     })
                     .catch((error) => {
-                        alert(error);
+                        Alert.alert(getFirebaseAuthErrorMessage(error.code));
                     });
             })
             .catch((error) => {
-                Alert.alert("Eingegebene E-mail Adresse entspricht nicht der Norm.");
+                Alert.alert(getFirebaseAuthErrorMessage(error.code));
             });
     }
 
     return (
-
-
         <KeyboardAvoidingView behavior="padding" style={styles.container}>
-
+            <Image source={require('../images/logo_small.webp')} style={styles.logo} />
             <View style={styles.inputContainer}>
-                <Image source={require('../images/logo_small.webp')} style={styles.logo} />
-                <SafeAreaView>
-                    <TextInput
-                        style={styles.input}
-                        placeholder='E-mail'
-                        placeholderTextColor="#a9d0fc"
-                        onChangeText={(text) => setEmail(text)}
-                        value={email}
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholderTextColor="#a9d0fc"
-                        placeholder='E-mail wiederholen'
-                        onChangeText={(text) => setConfirmEmail(text)}
-                        value={confirmEmail}
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder='Vorname'
-                        placeholderTextColor="#a9d0fc"
-                        onChangeText={(text) => setFirstName(text)}
-                        value={firstName}
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholder='Nachname'
-                        placeholderTextColor="#a9d0fc"
-                        onChangeText={(text) => setSurName(text)}
-                        value={surName}
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholderTextColor="#a9d0fc"
-                        secureTextEntry
-                        placeholder='Passwort'
-                        onChangeText={(text) => setPassword(text)}
-                        value={password}
-                    />
-                    <TextInput
-                        style={styles.input}
-                        placeholderTextColor="#a9d0fc"
-                        secureTextEntry
-                        placeholder='Passwort wiederholen'
-                        onChangeText={(text) => setConfirmPassword(text)}
-                        value={confirmPassword}
-                    />
-                </SafeAreaView>
+                <Input placeholder="Vorname" value={state.firstName} onChangeText={(text) => setState({ ...state, firstName: text })} />
+                <Input placeholder="Nachname" value={state.surName} onChangeText={(text) => setState({ ...state, surName: text })} />
+                <Input placeholder="E-mail" value={state.email} onChangeText={(text) => setState({ ...state, email: text })} />
+                <Input placeholder="E-mail bestätigen" value={state.confirmEmail} onChangeText={(text) => setState({ ...state, confirmEmail: text })} />
+                <Input placeholder="Passwort" value={state.password} onChangeText={(text) => setState({ ...state, password: text })} secureTextEntry />
+                <Input placeholder="Passwort bestätigen" value={state.confirmPassword} onChangeText={(text) => setState({ ...state, confirmPassword: text })} secureTextEntry />
             </View>
-
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                    style={styles.button}
-                    onPress={() => onRegisterPress()}>
-                    <Text style={styles.buttonTitle}>Account erstellen</Text>
-                </TouchableOpacity>
-
-                <View style={styles.footerView}>
-                    <Text style={styles.footerText}>Schon registriert? <Text onPress={onFooterLinkPress} style={styles.footerLink}>Anmelden</Text></Text>
-                </View>
+            <Button title="Account erstellen" onPress={onRegisterPress} containerStyle={styles.buttonContainer} buttonStyle={styles.button} />
+            <View style={styles.footerView}>
+                <Button title="Schon registriert? Anmelden" onPress={() => navigation.replace("Login")} type="clear" titleStyle={styles.footerLink} />
             </View>
         </KeyboardAvoidingView>
     )
 }
 
-export default SignInScreen;
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-
         justifyContent: 'center',
         alignItems: 'center',
-
     },
     logo: {
-        width: 100,
-        height: 70,
-        alignSelf: "center",
-        marginBottom: 30,
-    },
-    input: {
-        backgroundColor: "white",
-        paddingHorizontal: 15,
-        paddingVertical: 10,
-        borderRadius: 10,
-        marginTop: 5,
+        marginBottom: 20,
+        width: 200,
+        height: 140,
     },
     inputContainer: {
-        marginTop: Platform.OS === 'android' ? (StatusBar.currentHeight + 90) : 10,
         width: "80%",
     },
     buttonContainer: {
         width: "60%",
-        justifyContent: "center",
-        alignItems: "center",
         marginTop: 20,
     },
     button: {
         backgroundColor: "#007ac5",
-        width: "100%",
-        padding: 15,
         borderRadius: 10,
-        alignItems: "center",
-    },
-    buttonTitle: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: "bold"
     },
     footerView: {
         alignItems: "center",
-        marginTop: 20
-    },
-    footerText: {
-        fontSize: 16,
-        color: '#007ac5'
+        marginTop: 20,
     },
     footerLink: {
-        color: "#788eec",
+        color: "#007ac5",
         fontWeight: "bold",
-        fontSize: 16
+        fontSize: 16,
     }
 });
